@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Abu Rural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wavebg" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="ink" d="M110 8 C90 8 78 22 80 40 C64 36 50 48 54 64 C40 62 28 76 36 92 C50 96 62 88 68 78 C70 92 84 100 98 94 C96 108 108 118 122 112 C126 100 120 88 110 84 C124 86 136 76 132 62 C146 62 154 48 144 34 C150 20 138 8 122 12 C120 8 116 8 110 8 Z" />
+        <path class="ink" d="M108 78 L108 176 L100 190" />
+        <path class="ink" d="M78 108 L78 168 Q78 176 86 176 L96 176 L96 122 Q96 108 82 108 Z" />
+        <path class="ink" d="M132 108 L132 168 Q132 176 140 176 L150 176 L150 122 Q150 108 136 108 Z" />
+        <circle class="ink-fill" cx="87" cy="128" r="6"/>
+        <circle class="ink-fill" cx="141" cy="128" r="6"/>
+        <path class="ink" d="M62 176 Q110 196 158 176" />
+        <path class="ink" d="M62 176 L158 176" />
+      </svg>
+      <div class="brand-text">
+        <h1>biblioteca <span>abu rural</span></h1>
+        <p class="tagline">o catálogo da nossa estante, aberto pra todo mundo</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="controls" aria-label="Buscar e filtrar livros">
+    <div class="search-row">
+      <input type="search" id="search" placeholder="Buscar por título ou autor..." autocomplete="off">
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="chips" id="temaChips" role="group" aria-label="Filtrar por tema"></div>
+  </section>
+
+  <section id="results" class="grid" aria-live="polite"></section>
+
+  <p id="empty" class="empty hidden">Nenhum livro encontrado com esse filtro.</p>
+</main>
+
+<footer class="site-footer">
+  <p>Biblioteca Abu Rural &middot; catálogo mantido pela comunidade</p>
+</footer>
+
+<div class="modal-backdrop hidden" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Fechar">&times;</button>
+    <div class="modal-cover">
+      <img id="modalCoverImg" alt="" class="hidden">
+      <div id="modalCoverPlaceholder" class="cover-placeholder"></div>
+    </div>
+    <div class="modal-info">
+      <p class="modal-tema" id="modalTema"></p>
+      <h2 id="modalTitle"></h2>
+      <p class="modal-autor" id="modalAutor"></p>
+      <p class="modal-editora" id="modalEditora"></p>
+      <p class="modal-estante" id="modalEstante"></p>
+      <button class="loan-btn" id="loanBtn"></button>
+    </div>
+  </div>
+</div>
+
+<script src="books.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
