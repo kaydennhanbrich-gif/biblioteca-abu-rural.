@@ -1,6 +1,6 @@
 // ---------- State ----------
 const STORAGE_LOANS = "abu-rural-emprestimos";
-const STORAGE_COVERS = "abu-rural-capas";
+const STORAGE_COVERS = "abu-rural-capas-v2";
 
 const loanState = JSON.parse(localStorage.getItem(STORAGE_LOANS) || "{}");
 const coverCache = JSON.parse(localStorage.getItem(STORAGE_COVERS) || "{}");
@@ -44,7 +44,55 @@ function filteredBooks() {
   });
 }
 
-// ---------- Cover fetching (Open Library, cached, lazy) ----------
+// ---------- Title/author matching (avoids attaching the wrong cover) ----------
+function normalize(str) {
+  return (str || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function coreTitle(title) {
+  return (title || "").split(/[:(]/)[0];
+}
+
+function titleSimilarity(a, b) {
+  const wa = new Set(normalize(coreTitle(a)).split(" ").filter(w => w.length > 2));
+  const wb = new Set(normalize(coreTitle(b)).split(" ").filter(w => w.length > 2));
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let common = 0;
+  wa.forEach(w => { if (wb.has(w)) common++; });
+  return common / Math.max(wa.size, wb.size);
+}
+
+function authorMatches(ourAuthor, candidateAuthors) {
+  if (!candidateAuthors || !candidateAuthors.length) return false;
+  const ourWords = normalize(ourAuthor).split(" ").filter(w => w.length > 2);
+  if (!ourWords.length) return false;
+  const candidateNorm = normalize(candidateAuthors.join(" "));
+  return ourWords.some(w => candidateNorm.includes(w));
+}
+
+function pickBestMatch(book, items) {
+  let best = null;
+  let bestScore = 0;
+  (items || []).forEach(item => {
+    const info = item.volumeInfo || {};
+    if (!info.imageLinks || !info.imageLinks.thumbnail) return;
+    const sim = titleSimilarity(book.titulo, info.title || "");
+    const authOk = authorMatches(book.autor, info.authors);
+    const threshold = authOk ? 0.4 : 0.7;
+    if (sim >= threshold && sim > bestScore) {
+      bestScore = sim;
+      best = info.imageLinks.thumbnail.replace(/^http:/, "https:");
+    }
+  });
+  return best;
+}
+
+// ---------- Cover fetching (Google Books, validated + cached + lazy) ----------
 const coverObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -66,11 +114,14 @@ async function loadCover(wrapEl) {
   }
 
   try {
-    const q = encodeURIComponent(book.titulo + " " + book.autor.split(/[,e&]/)[0]);
-    const res = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`, { signal: AbortSignal.timeout(6000) });
+    const authorFirstName = (book.autor || "").split(/[,&]| e /)[0].trim();
+    const q = `intitle:${coreTitle(book.titulo)} ${authorFirstName ? "inauthor:" + authorFirstName : ""}`;
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=3`,
+      { signal: AbortSignal.timeout(6000) }
+    );
     const data = await res.json();
-    const coverId = data.docs && data.docs[0] && data.docs[0].cover_i;
-    const url = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : null;
+    const url = pickBestMatch(book, data.items);
     coverCache[cacheKey] = url;
     saveCovers();
     applyCover(wrapEl, url);
