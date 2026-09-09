@@ -108,6 +108,13 @@ async function loadCover(wrapEl) {
   const book = BOOKS.find(b => b.id == bookId);
   const cacheKey = book.titulo + "|" + book.autor;
 
+  if (MANUAL_COVERS[book.id]) {
+    coverCache[cacheKey] = MANUAL_COVERS[book.id];
+    saveCovers();
+    applyCover(wrapEl, MANUAL_COVERS[book.id]);
+    return;
+  }
+
   if (coverCache[cacheKey] !== undefined) {
     applyCover(wrapEl, coverCache[cacheKey]);
     return;
@@ -213,7 +220,7 @@ function openModal(book) {
   document.getElementById("modalEstante").textContent = `${book.estante} · item ${book.item}`;
 
   const cacheKey = book.titulo + "|" + book.autor;
-  const cached = coverCache[cacheKey];
+  const cached = MANUAL_COVERS[book.id] || coverCache[cacheKey];
   if (cached) {
     modalCoverImg.src = cached;
     modalCoverImg.classList.remove("hidden");
