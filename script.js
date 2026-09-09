@@ -83,7 +83,7 @@ function pickBestMatch(book, items) {
     if (!info.imageLinks || !info.imageLinks.thumbnail) return;
     const sim = titleSimilarity(book.titulo, info.title || "");
     const authOk = authorMatches(book.autor, info.authors);
-    const threshold = authOk ? 0.4 : 0.7;
+    const threshold = authOk ? 0.25 : 0.55;
     if (sim >= threshold && sim > bestScore) {
       bestScore = sim;
       best = info.imageLinks.thumbnail.replace(/^http:/, "https:");
@@ -117,7 +117,7 @@ async function loadCover(wrapEl) {
     const authorFirstName = (book.autor || "").split(/[,&]| e /)[0].trim();
     const q = `intitle:${coreTitle(book.titulo)} ${authorFirstName ? "inauthor:" + authorFirstName : ""}`;
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=3`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`,
       { signal: AbortSignal.timeout(6000) }
     );
     const data = await res.json();
