@@ -27,7 +27,7 @@
       </svg>
       <div class="brand-text">
         <h1>biblioteca <span>abu rural</span></h1>
-        <p class="tagline">o catálogo da nossa estante, aberto pra todo mundo</p>
+        <p class="tagline">acervo &middot; consulta ao catálogo</p>
       </div>
     </div>
   </div>
@@ -36,15 +36,22 @@
 <main>
   <section class="controls" aria-label="Buscar e filtrar livros">
     <div class="search-row">
-      <input type="search" id="search" placeholder="Buscar por título ou autor..." autocomplete="off">
-      <div class="stats" id="stats"></div>
+      <select id="searchField" aria-label="Buscar por">
+        <option value="all">Livre</option>
+        <option value="titulo">Título</option>
+        <option value="autor">Autor</option>
+      </select>
+      <input type="search" id="search" placeholder="Digite o termo da pesquisa..." autocomplete="off">
     </div>
-    <div class="chips" id="temaChips" role="group" aria-label="Filtrar por tema"></div>
+    <div class="filter-row">
+      <select id="temaFilter" aria-label="Filtrar por tema"></select>
+      <span class="stats" id="stats"></span>
+    </div>
   </section>
 
-  <section id="results" class="grid" aria-live="polite"></section>
+  <section class="results-list" id="results" aria-live="polite"></section>
 
-  <p id="empty" class="empty hidden">Nenhum livro encontrado com esse filtro.</p>
+  <p id="empty" class="empty hidden">Nenhum resultado para essa pesquisa.</p>
 </main>
 
 <footer class="site-footer">
@@ -54,23 +61,20 @@
 <div class="modal-backdrop hidden" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <button class="modal-close" id="modalClose" aria-label="Fechar">&times;</button>
-    <div class="modal-cover">
-      <img id="modalCoverImg" alt="" class="hidden">
-      <div id="modalCoverPlaceholder" class="cover-placeholder"></div>
-    </div>
-    <div class="modal-info">
-      <p class="modal-tema" id="modalTema"></p>
-      <h2 id="modalTitle"></h2>
-      <p class="modal-autor" id="modalAutor"></p>
-      <p class="modal-editora" id="modalEditora"></p>
-      <p class="modal-estante" id="modalEstante"></p>
-      <button class="loan-btn" id="loanBtn"></button>
+    <p class="modal-tema" id="modalTema"></p>
+    <h2 id="modalTitle"></h2>
+    <p class="modal-autor" id="modalAutor"></p>
+    <p class="modal-editora" id="modalEditora"></p>
+    <p class="modal-estante" id="modalEstante"></p>
+
+    <div class="resumo-box">
+      <p class="resumo-label">Sinopse</p>
+      <p id="modalResumo" class="resumo-text"></p>
     </div>
   </div>
 </div>
 
 <script src="books.js"></script>
-<script src="covers.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
