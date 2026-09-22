@@ -72,21 +72,22 @@ function authorMatches(ourAuthor, candidateAuthors) {
   return ourWords.some(w => candidateNorm.includes(w));
 }
 
-function pickBestSummary(book, items) {
-  let best = null;
+// Picks the best-matching volume ID from a search result list (does NOT
+// rely on description being present here — search results often omit it).
+function pickBestVolumeId(book, items) {
+  let bestId = null;
   let bestScore = 0;
   (items || []).forEach(item => {
     const info = item.volumeInfo || {};
-    if (!info.description) return;
     const sim = titleSimilarity(book.titulo, info.title || "");
     const authOk = authorMatches(book.autor, info.authors);
     const threshold = authOk ? 0.25 : 0.55;
     if (sim >= threshold && sim > bestScore) {
       bestScore = sim;
-      best = info.description;
+      bestId = item.id;
     }
   });
-  return best;
+  return bestId;
 }
 
 // ---------- Rendering ----------
@@ -159,13 +160,28 @@ async function loadResumo(book) {
   box.textContent = "Buscando resumo...";
 
   try {
+    // Step 1: search to find the right book (title/author match).
     const authorFirstName = (book.autor || "").split(/[,&]| e /)[0].trim();
     const q = `intitle:${coreTitle(book.titulo)} ${authorFirstName ? "inauthor:" + authorFirstName : ""}`;
-    const res = await fetch(
+    const searchRes = await fetch(
       `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`
     );
-    const data = await res.json();
-    const resumo = pickBestSummary(book, data.items);
+    const searchData = await searchRes.json();
+    const volumeId = pickBestVolumeId(book, searchData.items);
+
+    if (!volumeId) {
+      resumoCache[cacheKey] = null;
+      saveResumos();
+      box.textContent = "Resumo não disponível para este livro.";
+      return;
+    }
+
+    // Step 2: fetch that specific volume's full record — search results
+    // often omit the description, but the volume detail endpoint has it.
+    const volRes = await fetch(`https://www.googleapis.com/books/v1/volumes/${volumeId}`);
+    const volData = await volRes.json();
+    const resumo = (volData.volumeInfo && volData.volumeInfo.description) || null;
+
     resumoCache[cacheKey] = resumo;
     saveResumos();
     box.textContent = resumo || "Resumo não disponível para este livro.";
