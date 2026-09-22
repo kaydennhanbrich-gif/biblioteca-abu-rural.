@@ -2,7 +2,6 @@
 const STORAGE_RESUMOS = "abu-rural-resumos";
 const resumoCache = JSON.parse(localStorage.getItem(STORAGE_RESUMOS) || "{}");
 
-let searchField = "all";
 let query = "";
 let activeTema = "Todos";
 
@@ -24,12 +23,10 @@ function filteredBooks() {
     const matchesTema = activeTema === "Todos" ||
       (activeTema === ABU_TAG ? isEditoraABU(b) : b.tema === activeTema);
 
-    let matchesQuery = true;
-    if (q) {
-      if (searchField === "titulo") matchesQuery = b.titulo.toLowerCase().includes(q);
-      else if (searchField === "autor") matchesQuery = b.autor.toLowerCase().includes(q);
-      else matchesQuery = b.titulo.toLowerCase().includes(q) || b.autor.toLowerCase().includes(q) || b.tema.toLowerCase().includes(q);
-    }
+    const matchesQuery = !q ||
+      b.titulo.toLowerCase().includes(q) ||
+      b.autor.toLowerCase().includes(q) ||
+      b.tema.toLowerCase().includes(q);
 
     return matchesTema && matchesQuery;
   });
@@ -72,22 +69,25 @@ function authorMatches(ourAuthor, candidateAuthors) {
   return ourWords.some(w => candidateNorm.includes(w));
 }
 
-// Picks the best-matching volume ID from a search result list (does NOT
-// rely on description being present here — search results often omit it).
-function pickBestVolumeId(book, items) {
-  let bestId = null;
-  let bestScore = 0;
-  (items || []).forEach(item => {
+// Since the query itself already requires the quoted title phrase to appear,
+// results are already filtered strongly by Google. We only use similarity as
+// a light tie-breaker between candidates, not as a strict pass/fail gate.
+function pickBestMatch(book, items) {
+  if (!items || !items.length) return null;
+
+  let best = null;
+  let bestScore = -1;
+  items.forEach(item => {
     const info = item.volumeInfo || {};
     const sim = titleSimilarity(book.titulo, info.title || "");
     const authOk = authorMatches(book.autor, info.authors);
-    const threshold = authOk ? 0.25 : 0.55;
-    if (sim >= threshold && sim > bestScore) {
-      bestScore = sim;
-      bestId = item.id;
+    const score = sim + (authOk ? 0.5 : 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = { id: item.id, description: info.description || null };
     }
   });
-  return bestId;
+  return best;
 }
 
 // ---------- Rendering ----------
@@ -160,29 +160,43 @@ async function loadResumo(book) {
   box.textContent = "Buscando resumo...";
 
   try {
-    // Step 1: search to find the right book (title/author match).
+    // Plain quoted full-text query — more reliable than intitle:/inauthor:
+    // prefixes for multi-word Portuguese titles, which those prefixes only
+    // bind to a single following word.
     const authorFirstName = (book.autor || "").split(/[,&]| e /)[0].trim();
-    const q = `intitle:${coreTitle(book.titulo)} ${authorFirstName ? "inauthor:" + authorFirstName : ""}`;
+    const q = `"${coreTitle(book.titulo).trim()}" ${authorFirstName}`.trim();
     const searchRes = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&country=US`
     );
+    if (!searchRes.ok) throw new Error("search failed");
     const searchData = await searchRes.json();
-    const volumeId = pickBestVolumeId(book, searchData.items);
+    const match = pickBestMatch(book, searchData.items);
 
-    if (!volumeId) {
+    if (!match) {
       resumoCache[cacheKey] = null;
       saveResumos();
       box.textContent = "Resumo não disponível para este livro.";
       return;
     }
 
-    // Step 2: fetch that specific volume's full record — search results
-    // often omit the description, but the volume detail endpoint has it.
-    const volRes = await fetch(`https://www.googleapis.com/books/v1/volumes/${volumeId}`);
-    const volData = await volRes.json();
-    const resumo = (volData.volumeInfo && volData.volumeInfo.description) || null;
+    // The search result sometimes already has a (short) description; use it
+    // as a starting point, then try to get the fuller one from the volume
+    // detail endpoint, which search results often omit entirely.
+    let resumo = match.description;
+    if (match.id) {
+      try {
+        const volRes = await fetch(`https://www.googleapis.com/books/v1/volumes/${match.id}?country=US`);
+        if (volRes.ok) {
+          const volData = await volRes.json();
+          const fullDesc = volData.volumeInfo && volData.volumeInfo.description;
+          if (fullDesc) resumo = fullDesc;
+        }
+      } catch (e2) {
+        // ignore — we still have whatever came from the search step, if any
+      }
+    }
 
-    resumoCache[cacheKey] = resumo;
+    resumoCache[cacheKey] = resumo || null;
     saveResumos();
     box.textContent = resumo || "Resumo não disponível para este livro.";
   } catch (e) {
@@ -205,10 +219,6 @@ document.addEventListener("keydown", (e) => {
 // ---------- Search & filters ----------
 document.getElementById("search").addEventListener("input", (e) => {
   query = e.target.value;
-  renderList();
-});
-document.getElementById("searchField").addEventListener("change", (e) => {
-  searchField = e.target.value;
   renderList();
 });
 
