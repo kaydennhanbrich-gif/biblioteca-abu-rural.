@@ -69,9 +69,6 @@ function authorMatches(ourAuthor, candidateAuthors) {
   return ourWords.some(w => candidateNorm.includes(w));
 }
 
-// Since the query itself already requires the quoted title phrase to appear,
-// results are already filtered strongly by Google. We only use similarity as
-// a light tie-breaker between candidates, not as a strict pass/fail gate.
 function pickBestMatch(book, items) {
   if (!items || !items.length) return null;
 
@@ -150,59 +147,50 @@ function openModal(book) {
 
 async function loadResumo(book) {
   const box = document.getElementById("modalResumo");
-  const cacheKey = book.titulo + "|" + book.autor;
-
-  if (resumoCache[cacheKey] !== undefined) {
-    box.textContent = resumoCache[cacheKey] || "Resumo não disponível para este livro.";
-    return;
-  }
 
   box.textContent = "Buscando resumo...";
 
   try {
-    // Plain quoted full-text query — more reliable than intitle:/inauthor:
-    // prefixes for multi-word Portuguese titles, which those prefixes only
-    // bind to a single following word.
     const authorFirstName = (book.autor || "").split(/[,&]| e /)[0].trim();
     const q = `"${coreTitle(book.titulo).trim()}" ${authorFirstName}`.trim();
-    const searchRes = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&country=US`
-    );
-    if (!searchRes.ok) throw new Error("search failed");
-    const searchData = await searchRes.json();
-    const match = pickBestMatch(book, searchData.items);
+    const searchUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&country=US`;
+    const searchRes = await fetch(searchUrl);
 
-    if (!match) {
-      resumoCache[cacheKey] = null;
-      saveResumos();
-      box.textContent = "Resumo não disponível para este livro.";
+    if (!searchRes.ok) {
+      box.textContent = `[DEBUG] busca falhou — status ${searchRes.status}. Query: ${q}`;
+      return;
+    }
+    const searchData = await searchRes.json();
+
+    if (!searchData.items || !searchData.items.length) {
+      box.textContent = `[DEBUG] zero resultados pra: ${q}`;
       return;
     }
 
-    // The search result sometimes already has a (short) description; use it
-    // as a starting point, then try to get the fuller one from the volume
-    // detail endpoint, which search results often omit entirely.
+    const match = pickBestMatch(book, searchData.items);
+
+    if (!match) {
+      const titulos = searchData.items.slice(0, 3).map(i => (i.volumeInfo || {}).title).join(" | ");
+      box.textContent = `[DEBUG] achou ${searchData.items.length} mas nenhum passou no filtro. Query: ${q}. Top títulos: ${titulos}`;
+      return;
+    }
+
     let resumo = match.description;
     if (match.id) {
-      try {
-        const volRes = await fetch(`https://www.googleapis.com/books/v1/volumes/${match.id}?country=US`);
-        if (volRes.ok) {
-          const volData = await volRes.json();
-          const fullDesc = volData.volumeInfo && volData.volumeInfo.description;
-          if (fullDesc) resumo = fullDesc;
-        }
-      } catch (e2) {
-        // ignore — we still have whatever came from the search step, if any
+      const volRes = await fetch(`https://www.googleapis.com/books/v1/volumes/${match.id}?country=US`);
+      if (volRes.ok) {
+        const volData = await volRes.json();
+        const fullDesc = volData.volumeInfo && volData.volumeInfo.description;
+        if (fullDesc) resumo = fullDesc;
+      } else {
+        box.textContent = `[DEBUG] achou o livro (id ${match.id}) mas detalhe falhou — status ${volRes.status}`;
+        return;
       }
     }
 
-    resumoCache[cacheKey] = resumo || null;
-    saveResumos();
-    box.textContent = resumo || "Resumo não disponível para este livro.";
+    box.textContent = resumo || `[DEBUG] achou o livro (id ${match.id}) mas sem campo description.`;
   } catch (e) {
-    resumoCache[cacheKey] = null;
-    saveResumos();
-    box.textContent = "Resumo não disponível para este livro.";
+    box.textContent = `[DEBUG] erro: ${e.name} — ${e.message}`;
   }
 }
 
