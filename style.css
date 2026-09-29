@@ -131,7 +131,3 @@ select, input[type="search"], input[type="text"] {
 .modal-tema { font-size: .72rem; font-weight: 700; color: var(--sage); margin: .2rem 0 .3rem; }
 .modal h2 { font-family: 'Kalam', cursive; font-size: 1.25rem; margin: 0 0 .4rem; line-height: 1.2; }
 .modal-autor, .modal-editora, .modal-estante { font-size: .88rem; color: var(--ink-soft); margin: 0 0 .2rem; }
-
-.resumo-box { margin: 1rem 0 0; }
-.resumo-label { font-size: .72rem; font-weight: 800; color: var(--sky-deep); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 .3rem; }
-.resumo-text { font-size: .9rem; color: var(--ink-soft); line-height: 1.5; margin: 0; }
