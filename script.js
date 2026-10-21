@@ -84,17 +84,36 @@ function openModal(book) {
   document.getElementById("modalEditora").textContent = book.editora;
   document.getElementById("modalEstante").textContent = `${book.estante} · item ${book.item}`;
 
-  // Lógica do formulário de empréstimo adicionada aqui
-  const btn = document.getElementById("loanBtn");
-  if (btn) {
-    btn.textContent = "Pegar Emprestado";
-    btn.onclick = () => {
-      const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSf21Umze8z3q6FrU2qfD-E_ClSHB412p9LUUSH7qj4MJPb-GA/viewform?usp=pp_url";
-      const entryTitulo = "entry.1721382734";
-      const urlFinal = `${baseUrl}&${entryTitulo}=${encodeURIComponent(book.titulo)}`;
-      window.open(urlFinal, '_blank');
-    };
+  // Procura o botão. Se ele não existir no HTML, o JavaScript cria-o na hora!
+  let btn = document.getElementById("loanBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "loanBtn";
+    
+    // Estilo do botão para combinar com o tema "abu rural"
+    btn.style.marginTop = "15px";
+    btn.style.padding = "10px 20px";
+    btn.style.backgroundColor = "#a85a34"; // Cor de barro/laranja do logo
+    btn.style.color = "#fffdf9";
+    btn.style.border = "none";
+    btn.style.borderRadius = "999px";
+    btn.style.fontWeight = "bold";
+    btn.style.cursor = "pointer";
+    btn.style.width = "100%";
+    btn.style.fontSize = "16px";
+    
+    // Adiciona o botão no final da janela do modal (logo abaixo da estante)
+    document.getElementById("modalEstante").parentNode.appendChild(btn);
   }
+
+  // Define o texto e a ação de abrir o Google Forms
+  btn.textContent = "Pegar Emprestado";
+  btn.onclick = () => {
+    const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSf21Umze8z3q6FrU2qfD-E_ClSHB412p9LUUSH7qj4MJPb-GA/viewform?usp=pp_url";
+    const entryTitulo = "entry.1721382734";
+    const urlFinal = `${baseUrl}&${entryTitulo}=${encodeURIComponent(book.titulo)}`;
+    window.open(urlFinal, '_blank');
+  };
 
   modalBackdrop.classList.remove("hidden");
 }
