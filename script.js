@@ -1,3 +1,6 @@
+
+  
+
 // ---------- State ----------
 let query = "";
 let activeTema = "Todos";
@@ -106,11 +109,11 @@ function openModal(book) {
     document.getElementById("modalEstante").parentNode.appendChild(btn);
   }
 
-  // Define o texto e a ação de abrir o Google Forms
+  // Define o texto e a ação de abrir o Google Forms (ATUALIZADO AQUI)
   btn.textContent = "Pegar Emprestado";
   btn.onclick = () => {
-    const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSf21Umze8z3q6FrU2qfD-E_ClSHB412p9LUUSH7qj4MJPb-GA/viewform?usp=pp_url";
-    const entryTitulo = "entry.1721382734";
+    const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeQa_vAst_-MWgsa-CB6jL46rk00NC_1wMpaBbilqqk-xVl-g/viewform?usp=pp_url";
+    const entryTitulo = "entry.1781552325";
     const urlFinal = `${baseUrl}&${entryTitulo}=${encodeURIComponent(book.titulo)}`;
     window.open(urlFinal, '_blank');
   };
